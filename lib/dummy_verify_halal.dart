@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:Dashboard/Theme/app_colors.dart';
+import 'package:dashboard/Theme/app_colors.dart';
 
 void main() => runApp(MyApp());
 

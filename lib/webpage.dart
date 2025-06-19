@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:Dashboard/Theme/app_colors.dart';
+import 'package:dashboard/Theme/app_colors.dart';
+import 'dart:developer';
 
 void main() => runApp(MyApp());
 
@@ -45,6 +46,10 @@ class NavigationRailExample extends StatefulWidget {
 
 class _NavigationRailExampleState extends State<NavigationRailExample> {
   int _selectedIndex = 0;
+
+  // Toggle states for features and ads
+  List<bool> featureToggles = [true, false];
+  List<bool> adToggles = [true, false];
 
   @override
   Widget build(BuildContext context) {
@@ -96,8 +101,182 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
           Expanded(
             child: Center(
               child: _selectedIndex == 0
-                  ? Text('Welcome to the Features page!', style: AppColors.bodyText)
-                  : Text('Welcome to the Ads page!', style: AppColors.bodyText),
+                  ? Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Feature Activity', style: AppColors.boldTitle.copyWith(fontSize: 24)),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.add, color: AppColors.accentBlue),
+                                    tooltip: 'Add Feature',
+                                    onPressed: () {
+                                      log('Add Feature pressed');
+                                    },
+                                    color: AppColors.accentGreen,
+                                    style: ButtonStyle(
+                                      backgroundColor: WidgetStateProperty.all(AppColors.accentGreen),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      log('Edit Feature pressed');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.accentGreen,
+                                      foregroundColor: AppColors.accentBlue,
+                                    ),
+                                    child: const Text('Edit'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('S/N')),
+                                DataColumn(label: Text('Feature Name')),
+                                DataColumn(label: Text('Link')),
+                                DataColumn(label: Text('Enable')),
+                              ],
+                              rows: [
+                                DataRow(cells: [
+                                  const DataCell(Text('1')),
+                                  const DataCell(Text('Login')),
+                                  const DataCell(Text('https://example.com/login')),
+                                  DataCell(Switch(
+                                    value: featureToggles[0],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        featureToggles[0] = val;
+                                      });
+                                      log('Feature 1 toggled:  ${val.toString()}');
+                                    },
+                                    activeColor: AppColors.accentGreen,
+                                    inactiveThumbColor: AppColors.accentBlue,
+                                  )),
+                                ]),
+                                DataRow(cells: [
+                                  const DataCell(Text('2')),
+                                  const DataCell(Text('Dashboard')),
+                                  const DataCell(Text('https://example.com/dashboard')),
+                                  DataCell(Switch(
+                                    value: featureToggles[1],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        featureToggles[1] = val;
+                                      });
+                                      log('Feature 2 toggled:  ${val.toString()}');
+                                    },
+                                    activeColor: AppColors.accentGreen,
+                                    inactiveThumbColor: AppColors.accentBlue,
+                                  )),
+                                ]),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(24.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text('Ad Activity', style: AppColors.boldTitle.copyWith(fontSize: 24)),
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.add, color: AppColors.accentBlue),
+                                    tooltip: 'Add Ad',
+                                    onPressed: () {
+                                      log('Add Ad pressed');
+                                    },
+                                    color: AppColors.accentGreen,
+                                    style: ButtonStyle(
+                                      backgroundColor: WidgetStateProperty.all(AppColors.accentGreen),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      log('Edit Ad pressed');
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.accentGreen,
+                                      foregroundColor: AppColors.accentBlue,
+                                    ),
+                                    child: const Text('Edit'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.vertical,
+                            child: DataTable(
+                              columns: const [
+                                DataColumn(label: Text('S/N')),
+                                DataColumn(label: Text('Ad Name')),
+                                DataColumn(label: Text('Link')),
+                                DataColumn(label: Text('Enable')),
+                              ],
+                              rows: [
+                                DataRow(cells: [
+                                  const DataCell(Text('1')),
+                                  const DataCell(Text('Banner Ad')),
+                                  const DataCell(Text('https://example.com/banner')),
+                                  DataCell(Switch(
+                                    value: adToggles[0],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        adToggles[0] = val;
+                                      });
+                                      log('Ad 1 toggled: ${val.toString()}');
+                                    },
+                                    activeColor: AppColors.accentGreen,
+                                    inactiveThumbColor: AppColors.accentBlue,
+                                  )),
+                                ]),
+                                DataRow(cells: [
+                                  const DataCell(Text('2')),
+                                  const DataCell(Text('Sidebar Ad')),
+                                  const DataCell(Text('https://example.com/sidebar')),
+                                  DataCell(Switch(
+                                    value: adToggles[1],
+                                    onChanged: (val) {
+                                      setState(() {
+                                        adToggles[1] = val;
+                                      });
+                                      log('Ad 2 toggled: ${val.toString()}');
+                                    },
+                                    activeColor: AppColors.accentGreen,
+                                    inactiveThumbColor: AppColors.accentBlue,
+                                  )),
+                                ]),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
             ),
           ),
         ],
