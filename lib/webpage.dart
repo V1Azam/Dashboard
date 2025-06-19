@@ -51,6 +51,112 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   List<bool> featureToggles = [true, false];
   List<bool> adToggles = [true, false];
 
+  // Table data for features and ads
+  List<List<String>> featureData = [
+    ['Prayer Time', 'https://example.com/prayer-time'],
+    ['Halal Pop Quiz', 'https://example.com/halal-pop-quiz'],
+  ];
+  List<List<String>> adData = [
+    ['Mobile Ad', '5 Seconds', 'https://example.com/mobile'],
+    ['TV Ad', '10 Seconds', 'https://example.com/tv'],
+  ];
+
+  // Last saved data for revert
+  List<List<String>> lastSavedFeatureData = [];
+  List<List<String>> lastSavedAdData = [];
+  List<bool> lastSavedFeatureToggles = [];
+  List<bool> lastSavedAdToggles = [];
+
+  // Edit mode flags
+  bool isEditingFeatures = false;
+  bool isEditingAds = false;
+
+  // Controllers for editing
+  List<List<TextEditingController>> featureControllers = [];
+  List<List<TextEditingController>> adControllers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _initControllers();
+    _saveLastState();
+  }
+
+  void _initControllers() {
+    featureControllers = featureData
+        .map((row) => row.map((cell) => TextEditingController(text: cell)).toList())
+        .toList();
+    adControllers = adData
+        .map((row) => row.map((cell) => TextEditingController(text: cell)).toList())
+        .toList();
+  }
+
+  void _saveLastState() {
+    lastSavedFeatureData = featureData.map((row) => List<String>.from(row)).toList();
+    lastSavedAdData = adData.map((row) => List<String>.from(row)).toList();
+    lastSavedFeatureToggles = List<bool>.from(featureToggles);
+    lastSavedAdToggles = List<bool>.from(adToggles);
+  }
+
+  void _revertToLastState() {
+    setState(() {
+      featureData = lastSavedFeatureData.map((row) => List<String>.from(row)).toList();
+      adData = lastSavedAdData.map((row) => List<String>.from(row)).toList();
+      featureToggles = List<bool>.from(lastSavedFeatureToggles);
+      adToggles = List<bool>.from(lastSavedAdToggles);
+      isEditingFeatures = false;
+      isEditingAds = false;
+      _initControllers();
+    });
+  }
+
+  void _onTabChange(int index) {
+    if ((_selectedIndex == 0 && isEditingFeatures) || (_selectedIndex == 1 && isEditingAds)) {
+      _revertToLastState();
+    }
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  void _onEditFeatures() {
+    setState(() {
+      isEditingFeatures = true;
+      _initControllers();
+    });
+  }
+
+  void _onEditAds() {
+    setState(() {
+      isEditingAds = true;
+      _initControllers();
+    });
+  }
+
+  void _onSaveFeatures() {
+    setState(() {
+      for (int i = 0; i < featureData.length; i++) {
+        for (int j = 0; j < featureData[i].length; j++) {
+          featureData[i][j] = featureControllers[i][j].text;
+        }
+      }
+      isEditingFeatures = false;
+      _saveLastState();
+    });
+  }
+
+  void _onSaveAds() {
+    setState(() {
+      for (int i = 0; i < adData.length; i++) {
+        for (int j = 0; j < adData[i].length; j++) {
+          adData[i][j] = adControllers[i][j].text;
+        }
+      }
+      isEditingAds = false;
+      _saveLastState();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -71,11 +177,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         children: [
           NavigationRail(
             selectedIndex: _selectedIndex,
-            onDestinationSelected: (int index) {
-              setState(() {
-                _selectedIndex = index;
-              });
-            },
+            onDestinationSelected: _onTabChange,
             backgroundColor: AppColors.accentBlue,
             labelType: NavigationRailLabelType.all,
             selectedLabelTextStyle: AppColors.boldTitle.copyWith(color: Colors.white),
@@ -97,7 +199,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
             ],
           ),
           const VerticalDivider(thickness: 1, width: 1),
-          // Main content area
           Expanded(
             child: Center(
               child: _selectedIndex == 0
@@ -125,16 +226,23 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      log('Edit Feature pressed');
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.accentGreen,
-                                      foregroundColor: AppColors.accentBlue,
-                                    ),
-                                    child: const Text('Edit'),
-                                  ),
+                                  isEditingFeatures
+                                      ? ElevatedButton(
+                                          onPressed: _onSaveFeatures,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentBlue,
+                                            foregroundColor: AppColors.accentGreen,
+                                          ),
+                                          child: const Text('Save'),
+                                        )
+                                      : ElevatedButton(
+                                          onPressed: _onEditFeatures,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentGreen,
+                                            foregroundColor: AppColors.accentBlue,
+                                          ),
+                                          child: const Text('Edit'),
+                                        ),
                                 ],
                               ),
                             ],
@@ -150,40 +258,43 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                 DataColumn(label: Text('Link')),
                                 DataColumn(label: Text('Enable')),
                               ],
-                              rows: [
-                                DataRow(cells: [
-                                  const DataCell(Text('1')),
-                                  const DataCell(Text('Login')),
-                                  const DataCell(Text('https://example.com/login')),
-                                  DataCell(Switch(
-                                    value: featureToggles[0],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        featureToggles[0] = val;
-                                      });
-                                      log('Feature 1 toggled:  ${val.toString()}');
-                                    },
-                                    activeColor: AppColors.accentGreen,
-                                    inactiveThumbColor: AppColors.accentBlue,
-                                  )),
+                              rows: List<DataRow>.generate(
+                                featureData.length,
+                                (i) => DataRow(cells: [
+                                  DataCell(Text('${i + 1}')),
+                                  DataCell(
+                                    isEditingFeatures
+                                        ? TextField(
+                                            controller: featureControllers[i][0],
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          )
+                                        : Text(featureData[i][0]),
+                                  ),
+                                  DataCell(
+                                    isEditingFeatures
+                                        ? TextField(
+                                            controller: featureControllers[i][1],
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          )
+                                        : Text(featureData[i][1]),
+                                  ),
+                                  DataCell(
+                                    Switch(
+                                      value: featureToggles[i],
+                                      onChanged: isEditingFeatures
+                                          ? (val) {
+                                              setState(() {
+                                                featureToggles[i] = val;
+                                              });
+                                              log('Feature ${i + 1} toggled:  ${val.toString()}');
+                                            }
+                                          : null,
+                                      activeColor: AppColors.accentGreen,
+                                      inactiveThumbColor: AppColors.accentBlue,
+                                    ),
+                                  ),
                                 ]),
-                                DataRow(cells: [
-                                  const DataCell(Text('2')),
-                                  const DataCell(Text('Dashboard')),
-                                  const DataCell(Text('https://example.com/dashboard')),
-                                  DataCell(Switch(
-                                    value: featureToggles[1],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        featureToggles[1] = val;
-                                      });
-                                      log('Feature 2 toggled:  ${val.toString()}');
-                                    },
-                                    activeColor: AppColors.accentGreen,
-                                    inactiveThumbColor: AppColors.accentBlue,
-                                  )),
-                                ]),
-                              ],
+                              ),
                             ),
                           ),
                         ),
@@ -213,16 +324,23 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                     ),
                                   ),
                                   const SizedBox(width: 8),
-                                  ElevatedButton(
-                                    onPressed: () {
-                                      log('Edit Ad pressed');
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.accentGreen,
-                                      foregroundColor: AppColors.accentBlue,
-                                    ),
-                                    child: const Text('Edit'),
-                                  ),
+                                  isEditingAds
+                                      ? ElevatedButton(
+                                          onPressed: _onSaveAds,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentBlue,
+                                            foregroundColor: AppColors.accentGreen,
+                                          ),
+                                          child: const Text('Save'),
+                                        )
+                                      : ElevatedButton(
+                                          onPressed: _onEditAds,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentGreen,
+                                            foregroundColor: AppColors.accentBlue,
+                                          ),
+                                          child: const Text('Edit'),
+                                        ),
                                 ],
                               ),
                             ],
@@ -235,43 +353,55 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                               columns: const [
                                 DataColumn(label: Text('S/N')),
                                 DataColumn(label: Text('Ad Name')),
+                                DataColumn(label: Text('Frequency')),
                                 DataColumn(label: Text('Link')),
                                 DataColumn(label: Text('Enable')),
                               ],
-                              rows: [
-                                DataRow(cells: [
-                                  const DataCell(Text('1')),
-                                  const DataCell(Text('Banner Ad')),
-                                  const DataCell(Text('https://example.com/banner')),
-                                  DataCell(Switch(
-                                    value: adToggles[0],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        adToggles[0] = val;
-                                      });
-                                      log('Ad 1 toggled: ${val.toString()}');
-                                    },
-                                    activeColor: AppColors.accentGreen,
-                                    inactiveThumbColor: AppColors.accentBlue,
-                                  )),
+                              rows: List<DataRow>.generate(
+                                adData.length,
+                                (i) => DataRow(cells: [
+                                  DataCell(Text('${i + 1}')),
+                                  DataCell(
+                                    isEditingAds
+                                        ? TextField(
+                                            controller: adControllers[i][0],
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          )
+                                        : Text(adData[i][0]),
+                                  ),
+                                  DataCell(
+                                    isEditingAds
+                                        ? TextField(
+                                            controller: adControllers[i][1],
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          )
+                                        : Text(adData[i][1]),
+                                  ),
+                                  DataCell(
+                                    isEditingAds
+                                        ? TextField(
+                                            controller: adControllers[i][2],
+                                            decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          )
+                                        : Text(adData[i][2]),
+                                  ),
+                                  DataCell(
+                                    Switch(
+                                      value: adToggles[i],
+                                      onChanged: isEditingAds
+                                          ? (val) {
+                                              setState(() {
+                                                adToggles[i] = val;
+                                              });
+                                              log('Ad ${i + 1} toggled: ${val.toString()}');
+                                            }
+                                          : null,
+                                      activeColor: AppColors.accentGreen,
+                                      inactiveThumbColor: AppColors.accentBlue,
+                                    ),
+                                  ),
                                 ]),
-                                DataRow(cells: [
-                                  const DataCell(Text('2')),
-                                  const DataCell(Text('Sidebar Ad')),
-                                  const DataCell(Text('https://example.com/sidebar')),
-                                  DataCell(Switch(
-                                    value: adToggles[1],
-                                    onChanged: (val) {
-                                      setState(() {
-                                        adToggles[1] = val;
-                                      });
-                                      log('Ad 2 toggled: ${val.toString()}');
-                                    },
-                                    activeColor: AppColors.accentGreen,
-                                    inactiveThumbColor: AppColors.accentBlue,
-                                  )),
-                                ]),
-                              ],
+                              ),
                             ),
                           ),
                         ),
