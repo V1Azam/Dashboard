@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:dashboard/Theme/app_colors.dart';
 import 'dart:developer';
+import 'package:pocketbase/pocketbase.dart';
+import 'dart:async';
+
+final pb = PocketBase('http://127.0.0.1:8090');
 
 void main() => runApp(MyApp());
 
@@ -133,7 +137,40 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     });
   }
 
-  void _onSaveFeatures() {
+  Future<void> _syncFeaturesToPocketBase() async {
+    // Delete all existing features
+    final records = await pb.collection('features').getFullList();
+    for (final r in records) {
+      await pb.collection('features').delete(r.id);
+    }
+    // Add current UI rows
+    for (int i = 0; i < featureData.length; i++) {
+      await pb.collection('features').create(body: {
+        'featureName': featureData[i][0],
+        'link': featureData[i][1],
+        'isEnabled': featureToggles[i],
+      });
+    }
+  }
+
+  Future<void> _syncAdsToPocketBase() async {
+    // Delete all existing ads
+    final records = await pb.collection('ads').getFullList();
+    for (final r in records) {
+      await pb.collection('ads').delete(r.id);
+    }
+    // Add current UI rows
+    for (int i = 0; i < adData.length; i++) {
+      await pb.collection('ads').create(body: {
+        'adName': adData[i][0],
+        'freq': adData[i][1],
+        'link': adData[i][2],
+        'isEnabled': adToggles[i],
+      });
+    }
+  }
+
+  void _onSaveFeatures() async {
     setState(() {
       for (int i = 0; i < featureData.length; i++) {
         for (int j = 0; j < featureData[i].length; j++) {
@@ -143,9 +180,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       isEditingFeatures = false;
       _saveLastState();
     });
+    await _syncFeaturesToPocketBase();
   }
 
-  void _onSaveAds() {
+  void _onSaveAds() async {
     setState(() {
       for (int i = 0; i < adData.length; i++) {
         for (int j = 0; j < adData[i].length; j++) {
@@ -155,6 +193,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       isEditingAds = false;
       _saveLastState();
     });
+    await _syncAdsToPocketBase();
   }
 
   @override

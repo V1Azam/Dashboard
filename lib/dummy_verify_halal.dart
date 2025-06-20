@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:dashboard/Theme/app_colors.dart';
 
-void main() => runApp(MyApp());
+void main() {
+  runApp(MyApp());
+}
 
 class AppTheme {
   static ThemeData get lightTheme {
