@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:dashboard/Theme/app_colors.dart';
-import 'dart:developer';
 import 'package:pocketbase/pocketbase.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
@@ -95,6 +94,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     {'label': 'Extra Features', 'value': 'extraFeatures'},
     {'label': 'Stay Connected', 'value': 'stayConnected'},
   ];
+
+  // Add these state variables:
+  bool newFeatureEnabled = false;
+  bool newAdEnabled = false;
 
   @override
   void initState() {
@@ -305,6 +308,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         TextEditingController(), // Link
         TextEditingController(text: sectionOptions[0]['value']!), // Section (default)
       ];
+      newFeatureEnabled = false;
     });
   }
 
@@ -341,7 +345,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         url,
         section,
       ]);
-      featureToggles.add(false); // default to disabled
+      featureToggles.add(newFeatureEnabled); // use toggle value
       isAddingFeature = false;
       newFeatureControllers = [];
       _initControllers();
@@ -354,6 +358,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     setState(() {
       isAddingFeature = false;
       newFeatureControllers = [];
+      newFeatureEnabled = false;
     });
   }
 
@@ -365,6 +370,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         TextEditingController(), // Frequency
         TextEditingController(), // Link
       ];
+      newAdEnabled = false;
     });
   }
 
@@ -402,7 +408,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         freqWithSeconds,
         url,
       ]);
-      adToggles.add(false); // default to disabled
+      adToggles.add(newAdEnabled); // use toggle value
       isAddingAd = false;
       newAdControllers = [];
       _initControllers();
@@ -415,7 +421,28 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     setState(() {
       isAddingAd = false;
       newAdControllers = [];
+      newAdEnabled = false;
     });
+  }
+
+  Future<bool> showDeleteConfirmationDialog(BuildContext context) async {
+    return await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Row'),
+        content: const Text('Are you sure you want to delete this row? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    ) ?? false;
   }
 
   @override
@@ -475,7 +502,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                               Text('Feature Activity', style: AppColors.boldTitle.copyWith(fontSize: 24)),
                               Row(
                                 children: [
-                                  if (!isAddingFeature) ...[
+                                  if (!isAddingFeature && !isEditingFeatures) ...[
                                     IconButton(
                                       icon: const Icon(Icons.add, color: AppColors.accentBlue),
                                       tooltip: 'Add Feature',
@@ -486,6 +513,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
+                                  ],
+                                  if (!isAddingFeature)
                                     isEditingFeatures
                                         ? ElevatedButton(
                                             onPressed: _onSaveFeatures,
@@ -503,7 +532,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                             ),
                                             child: const Text('Edit'),
                                           ),
-                                  ] else ...[
+                                  if (isAddingFeature) ...[
                                     ElevatedButton(
                                       onPressed: _onDoneAddFeature,
                                       style: ElevatedButton.styleFrom(
@@ -531,19 +560,21 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                           child: SingleChildScrollView(
                             scrollDirection: Axis.vertical,
                             child: DataTable(
-                              columns: const [
-                                DataColumn(label: Text('S/N')),
+                              columns: [
+                                DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
                                 DataColumn(label: Text('Feature Name')),
                                 DataColumn(label: Text('Image')),
                                 DataColumn(label: Text('Link')),
                                 DataColumn(label: Text('Section')),
                                 DataColumn(label: Text('Enable')),
+                                if (isEditingFeatures)
+                                  DataColumn(label: SizedBox(width: 36)),
                               ],
                               rows: [
                                 ...List<DataRow>.generate(
                                   featureData.length,
                                   (i) => DataRow(cells: [
-                                    DataCell(Text('${i + 1}')),
+                                    DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
                                     DataCell(
                                       isEditingFeatures
                                           ? SizedBox(
@@ -617,7 +648,12 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 style: TextStyle(overflow: TextOverflow.ellipsis),
                                               ),
                                             )
-                                          : Text(featureData[i][2]),
+                                          : Text(
+                                              featureData[i][2].length > 30
+                                                  ? featureData[i][2].substring(0, 30) + '...'
+                                                  : featureData[i][2],
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
                                     ),
                                     DataCell(
                                       isEditingFeatures
@@ -656,11 +692,28 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                         inactiveThumbColor: AppColors.accentBlue,
                                       ),
                                     ),
+                                    if (isEditingFeatures)
+                                      DataCell(
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                          tooltip: 'Delete Row',
+                                          onPressed: () async {
+                                            final confirm = await showDeleteConfirmationDialog(context);
+                                            if (confirm) {
+                                              setState(() {
+                                                featureData.removeAt(i);
+                                                featureToggles.removeAt(i);
+                                                featureControllers.removeAt(i);
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ),
                                   ]),
                                 ),
                                 if (isAddingFeature)
                                   DataRow(cells: [
-                                    DataCell(Text('${featureData.length + 1}')),
+                                    DataCell(SizedBox(width: 32, child: Text('${featureData.length + 1}'))),
                                     DataCell(
                                       SizedBox(
                                         width: 160,
@@ -735,9 +788,21 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                         },
                                       ),
                                     ),
-                                    const DataCell(SizedBox()), // No enable switch for new row
+                                    DataCell(
+                                      Switch(
+                                        value: newFeatureEnabled,
+                                        onChanged: (val) {
+                                          setState(() {
+                                            newFeatureEnabled = val;
+                                          });
+                                        },
+                                        activeColor: AppColors.accentGreen,
+                                        inactiveThumbColor: AppColors.accentBlue,
+                                      ),
+                                    ),
                                   ]),
                               ],
+                              columnSpacing: 10,
                             ),
                           ),
                         ),
@@ -755,7 +820,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                               Text('Ad Activity', style: AppColors.boldTitle.copyWith(fontSize: 24)),
                               Row(
                                 children: [
-                                  if (!isAddingAd) ...[
+                                  if (!isAddingAd && !isEditingAds) ...[
                                     IconButton(
                                       icon: const Icon(Icons.add, color: AppColors.accentBlue),
                                       tooltip: 'Add Ad',
@@ -766,6 +831,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                       ),
                                     ),
                                     const SizedBox(width: 8),
+                                  ],
+                                  if (!isAddingAd)
                                     isEditingAds
                                         ? ElevatedButton(
                                             onPressed: _onSaveAds,
@@ -783,7 +850,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                             ),
                                             child: const Text('Edit'),
                                           ),
-                                  ] else ...[
+                                  if (isAddingAd) ...[
                                     ElevatedButton(
                                       onPressed: _onDoneAddAd,
                                       style: ElevatedButton.styleFrom(
@@ -815,7 +882,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                 final List<DataRow> adRows = List<DataRow>.generate(
                                   adData.length,
                                   (i) => DataRow(cells: [
-                                    DataCell(Text('${i + 1}')),
+                                    DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
                                     DataCell(
                                       isEditingAds
                                           ? SizedBox(
@@ -892,19 +959,35 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 setState(() {
                                                   adToggles[i] = val;
                                                 });
-                                                log('Ad \\${i + 1} toggled: \\${val.toString()}');
                                               }
                                             : null,
                                         activeColor: AppColors.accentGreen,
                                         inactiveThumbColor: AppColors.accentBlue,
                                       ),
                                     ),
+                                    if (isEditingAds)
+                                      DataCell(
+                                        IconButton(
+                                          icon: const Icon(Icons.delete, color: Colors.red),
+                                          tooltip: 'Delete Row',
+                                          onPressed: () async {
+                                            final confirm = await showDeleteConfirmationDialog(context);
+                                            if (confirm) {
+                                              setState(() {
+                                                adData.removeAt(i);
+                                                adToggles.removeAt(i);
+                                                adControllers.removeAt(i);
+                                              });
+                                            }
+                                          },
+                                        ),
+                                      ),
                                   ]),
                                 );
                                 if (isAddingAd) {
                                   adRows.add(
                                     DataRow(cells: [
-                                      DataCell(Text('${adData.length + 1}')),
+                                      DataCell(SizedBox(width: 32, child: Text('${adData.length + 1}'))),
                                       DataCell(
                                         SizedBox(
                                           width: 160,
@@ -921,6 +1004,11 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                               counterText: '',
                                             ),
                                             scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                            keyboardType: TextInputType.text,
+                                            textInputAction: TextInputAction.next,
+                                            expands: false,
+                                            scrollPadding: EdgeInsets.all(8),
+                                            style: TextStyle(overflow: TextOverflow.ellipsis),
                                           ),
                                         ),
                                       ),
@@ -939,6 +1027,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                               border: OutlineInputBorder(),
                                             ),
                                             scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                            textInputAction: TextInputAction.next,
+                                            expands: false,
+                                            scrollPadding: EdgeInsets.all(8),
+                                            style: TextStyle(overflow: TextOverflow.ellipsis),
                                           ),
                                         ),
                                       ),
@@ -953,22 +1045,40 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                               border: OutlineInputBorder(),
                                             ),
                                             scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                            textInputAction: TextInputAction.next,
+                                            expands: false,
+                                            scrollPadding: EdgeInsets.all(8),
+                                            style: TextStyle(overflow: TextOverflow.ellipsis),
                                           ),
                                         ),
                                       ),
-                                      const DataCell(SizedBox()), // No enable switch for new row
+                                      DataCell(
+                                        Switch(
+                                          value: newAdEnabled,
+                                          onChanged: (val) {
+                                            setState(() {
+                                              newAdEnabled = val;
+                                            });
+                                          },
+                                          activeColor: AppColors.accentGreen,
+                                          inactiveThumbColor: AppColors.accentBlue,
+                                        ),
+                                      ),
                                     ]),
                                   );
                                 }
                                 return DataTable(
-                                  columns: const [
-                                    DataColumn(label: Text('S/N')),
+                                  columns: [
+                                    DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
                                     DataColumn(label: Text('Ad Name')),
                                     DataColumn(label: Text('Frequency')),
                                     DataColumn(label: Text('Link')),
                                     DataColumn(label: Text('Enable')),
+                                    if (isEditingAds)
+                                      DataColumn(label: SizedBox(width: 36)),
                                   ],
                                   rows: adRows,
+                                  columnSpacing: 10,
                                 );
                               },
                             ),
