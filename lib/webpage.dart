@@ -62,8 +62,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   // Table data for features and ads
   List<List<String>> featureData = [
-    ['Prayer Time', 'https://example.com/prayer-time'],
-    ['Halal Pop Quiz', 'https://example.com/halal-pop-quiz'],
+    ['Prayer Time', '', 'https://example.com/prayer-time', sectionOptions[0]['value']!],
+    ['Halal Pop Quiz', '', 'https://example.com/halal-pop-quiz', sectionOptions[0]['value']!],
   ];
   List<List<String>> adData = [
     ['Mobile Ad', '5 Seconds', 'https://example.com/mobile'],
@@ -106,9 +106,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   void _initControllers() {
     featureControllers = featureData
         .map((row) => [
-              TextEditingController(text: row[0]),
-              TextEditingController(text: row[1]),
-              TextEditingController(text: row.length > 2 ? row[2] : sectionOptions[0]['value']!),
+              TextEditingController(text: row[0]), // Feature Name
+              TextEditingController(text: row[1]), // Image URL
+              TextEditingController(text: row[2]), // Link
+              TextEditingController(text: row.length > 3 ? row[3] : sectionOptions[0]['value']!), // Section
             ])
         .toList();
     adControllers = adData
@@ -171,7 +172,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     // Add current UI rows
     for (int i = 0; i < featureData.length; i++) {
       // Ensure section is always the value, not the label
-      String sectionValue = (featureData[i].length > 2 ? featureData[i][2] : sectionOptions[0]['value']) ?? sectionOptions[0]['value']!;
+      String sectionValue = (featureData[i].length > 3 ? featureData[i][3] : sectionOptions[0]['value']) ?? sectionOptions[0]['value']!;
       // If it's a label, convert to value
       final found = sectionOptions.firstWhere(
         (opt) => opt['value'] == sectionValue || opt['label'] == sectionValue,
@@ -180,7 +181,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       sectionValue = found['value'] ?? sectionOptions[0]['value']!;
       await pb.collection('features').create(body: {
         'featureName': featureData[i][0],
-        'link': featureData[i][1],
+        'image': featureData[i][1],
+        'link': featureData[i][2],
         'section': sectionValue,
         'isEnabled': featureToggles[i],
       });
@@ -204,12 +206,21 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     }
   }
 
+  bool isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
   void _onSaveFeatures() async {
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
-    final urlRegExp = RegExp(r'^(https?:\/\/)[\w\-]+(\.[\w\-]+)+([\/\w\-\.\?\=\&\#]*)?$');
     for (int i = 0; i < featureData.length; i++) {
       final name = featureControllers[i][0].text.trim();
-      final url = featureControllers[i][1].text.trim();
+      final imageUrl = featureControllers[i][1].text.trim();
+      final url = featureControllers[i][2].text.trim();
       String? error;
       if (name.isEmpty) {
         error = 'Feature name cannot be empty (row ${i + 1}).';
@@ -219,8 +230,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         error = 'Feature name contains invalid characters (row ${i + 1}).';
       } else if (url.isEmpty) {
         error = 'URL cannot be empty (row ${i + 1}).';
-      } else if (!urlRegExp.hasMatch(url)) {
+      } else if (!isValidUrl(url)) {
         error = 'Please enter a valid URL (row ${i + 1}).';
+      } else if (imageUrl.isNotEmpty && !isValidUrl(imageUrl)) {
+        error = 'Please enter a valid Image URL (row ${i + 1}).';
       }
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -233,11 +246,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       for (int i = 0; i < featureData.length; i++) {
         featureData[i][0] = featureControllers[i][0].text;
         featureData[i][1] = featureControllers[i][1].text;
-        if (featureData[i].length < 3) {
-          featureData[i].add(featureControllers[i][2].text);
-        } else {
-          featureData[i][2] = featureControllers[i][2].text;
-        }
+        featureData[i][2] = featureControllers[i][2].text;
+        featureData[i][3] = featureControllers[i][3].text;
       }
       isEditingFeatures = false;
       _saveLastState();
@@ -247,7 +257,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   void _onSaveAds() async {
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
-    final urlRegExp = RegExp(r'^(https?:\/\/)[\w\-]+(\.[\w\-]+)+([\/\w\-\.\?\=\&\#]*)?$');
     for (int i = 0; i < adData.length; i++) {
       final name = adControllers[i][0].text.trim();
       final freqRaw = adControllers[i][1].text.trim();
@@ -265,7 +274,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         error = 'Frequency must be an integer between 1 and 15 (row ${i + 1}).';
       } else if (url.isEmpty) {
         error = 'URL cannot be empty (row ${i + 1}).';
-      } else if (!urlRegExp.hasMatch(url)) {
+      } else if (!isValidUrl(url)) {
         error = 'Please enter a valid URL (row ${i + 1}).';
       }
       if (error != null) {
@@ -292,6 +301,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       isAddingFeature = true;
       newFeatureControllers = [
         TextEditingController(), // Feature Name
+        TextEditingController(), // Image URL
         TextEditingController(), // Link
         TextEditingController(text: sectionOptions[0]['value']!), // Section (default)
       ];
@@ -300,10 +310,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   void _onDoneAddFeature() async {
     final name = newFeatureControllers[0].text.trim();
-    final url = newFeatureControllers[1].text.trim();
-    final section = newFeatureControllers[2].text.trim();
+    final imageUrl = newFeatureControllers[1].text.trim();
+    final url = newFeatureControllers[2].text.trim();
+    final section = newFeatureControllers[3].text.trim();
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
-    final urlRegExp = RegExp(r'^(https?:\/\/)[\w\-]+(\.[\w\-]+)+([\/\w\-\.\?\=\&\#]*)?$');
     String? error;
     if (name.isEmpty) {
       error = 'Feature name cannot be empty.';
@@ -313,8 +323,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       error = 'Feature name contains invalid characters.';
     } else if (url.isEmpty) {
       error = 'URL cannot be empty.';
-    } else if (!urlRegExp.hasMatch(url)) {
+    } else if (!isValidUrl(url)) {
       error = 'Please enter a valid URL.';
+    } else if (imageUrl.isNotEmpty && !isValidUrl(imageUrl)) {
+      error = 'Please enter a valid Image URL.';
     }
     if (error != null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -325,6 +337,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     setState(() {
       featureData.add([
         name,
+        imageUrl,
         url,
         section,
       ]);
@@ -360,7 +373,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     final freq = newAdControllers[1].text.trim();
     final url = newAdControllers[2].text.trim();
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
-    final urlRegExp = RegExp(r'^(https?:\/\/)[\w\-]+(\.[\w\-]+)+([\/\w\-\.\?\=\&\#]*)?$');
     String? error;
     if (name.isEmpty) {
       error = 'Ad name cannot be empty.';
@@ -374,7 +386,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       error = 'Frequency must be an integer between 1 and 15.';
     } else if (url.isEmpty) {
       error = 'URL cannot be empty.';
-    } else if (!urlRegExp.hasMatch(url)) {
+    } else if (!isValidUrl(url)) {
       error = 'Please enter a valid URL.';
     }
     if (error != null) {
@@ -522,6 +534,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                               columns: const [
                                 DataColumn(label: Text('S/N')),
                                 DataColumn(label: Text('Feature Name')),
+                                DataColumn(label: Text('Image')),
                                 DataColumn(label: Text('Link')),
                                 DataColumn(label: Text('Section')),
                                 DataColumn(label: Text('Enable')),
@@ -533,24 +546,83 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                     DataCell(Text('${i + 1}')),
                                     DataCell(
                                       isEditingFeatures
-                                          ? TextField(
-                                              controller: featureControllers[i][0],
-                                              decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          ? SizedBox(
+                                              width: 160,
+                                              child: TextField(
+                                                controller: featureControllers[i][0],
+                                                decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                  counterText: '',
+                                                ),
+                                                maxLength: 18,
+                                                maxLines: 1,
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                keyboardType: TextInputType.text,
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
                                             )
                                           : Text(featureData[i][0]),
                                     ),
                                     DataCell(
                                       isEditingFeatures
-                                          ? TextField(
-                                              controller: featureControllers[i][1],
-                                              decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          ? SizedBox(
+                                              width: 220,
+                                              child: TextField(
+                                                controller: featureControllers[i][1],
+                                                decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Image URL (optional)'),
+                                                maxLines: 1,
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                keyboardType: TextInputType.url,
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
                                             )
-                                          : Text(featureData[i][1]),
+                                          : Container(
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(6),
+                                                border: Border.all(color: Colors.grey),
+                                              ),
+                                              alignment: Alignment.center,
+                                              child: featureData[i][1].isNotEmpty
+                                                  ? Image.network(
+                                                      featureData[i][1],
+                                                      fit: BoxFit.contain,
+                                                      errorBuilder: (context, error, stackTrace) =>
+                                                          const Icon(Icons.image, color: Colors.grey, size: 24),
+                                                    )
+                                                  : const Icon(Icons.image, color: Colors.grey, size: 24),
+                                            ),
+                                    ),
+                                    DataCell(
+                                      isEditingFeatures
+                                          ? SizedBox(
+                                              width: 220,
+                                              child: TextField(
+                                                controller: featureControllers[i][2],
+                                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                maxLines: 1,
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                keyboardType: TextInputType.url,
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
+                                            )
+                                          : Text(featureData[i][2]),
                                     ),
                                     DataCell(
                                       isEditingFeatures
                                           ? DropdownButton<String>(
-                                              value: featureControllers[i][2].text,
+                                              value: featureControllers[i][3].text,
                                               items: sectionOptions
                                                   .map((opt) => DropdownMenuItem<String>(
                                                         value: opt['value'],
@@ -559,13 +631,13 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                   .toList(),
                                               onChanged: (val) {
                                                 setState(() {
-                                                  featureControllers[i][2].text = val!;
+                                                  featureControllers[i][3].text = val!;
                                                 });
                                               },
                                             )
                                           : Text(
                                               sectionOptions.firstWhere(
-                                                (opt) => opt['value'] == (featureData[i].length > 2 ? featureData[i][2] : sectionOptions[0]['value']),
+                                                (opt) => opt['value'] == (featureData[i].length > 3 ? featureData[i][3] : sectionOptions[0]['value']),
                                                 orElse: () => sectionOptions[0],
                                               )['label']!,
                                             ),
@@ -605,6 +677,11 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                             counterText: '',
                                           ),
                                           scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                          keyboardType: TextInputType.text,
+                                          textInputAction: TextInputAction.next,
+                                          expands: false,
+                                          scrollPadding: EdgeInsets.all(8),
+                                          style: TextStyle(overflow: TextOverflow.ellipsis),
                                         ),
                                       ),
                                     ),
@@ -613,18 +690,38 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                         width: 220,
                                         child: TextField(
                                           controller: newFeatureControllers[1],
+                                          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Image URL (optional)'),
+                                          maxLines: 1,
+                                          scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                          keyboardType: TextInputType.url,
+                                          textInputAction: TextInputAction.next,
+                                          expands: false,
+                                          scrollPadding: EdgeInsets.all(8),
+                                          style: TextStyle(overflow: TextOverflow.ellipsis),
+                                        ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      SizedBox(
+                                        width: 220,
+                                        child: TextField(
+                                          controller: newFeatureControllers[2],
                                           maxLines: 1,
                                           keyboardType: TextInputType.url,
                                           decoration: const InputDecoration(
                                             border: OutlineInputBorder(),
                                           ),
                                           scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                          textInputAction: TextInputAction.next,
+                                          expands: false,
+                                          scrollPadding: EdgeInsets.all(8),
+                                          style: TextStyle(overflow: TextOverflow.ellipsis),
                                         ),
                                       ),
                                     ),
                                     DataCell(
                                       DropdownButton<String>(
-                                        value: newFeatureControllers[2].text,
+                                        value: newFeatureControllers[3].text,
                                         items: sectionOptions
                                             .map((opt) => DropdownMenuItem<String>(
                                                   value: opt['value'],
@@ -633,7 +730,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                             .toList(),
                                         onChanged: (val) {
                                           setState(() {
-                                            newFeatureControllers[2].text = val!;
+                                            newFeatureControllers[3].text = val!;
                                           });
                                         },
                                       ),
@@ -721,43 +818,69 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                     DataCell(Text('${i + 1}')),
                                     DataCell(
                                       isEditingAds
-                                          ? TextField(
-                                              controller: adControllers[i][0],
-                                              decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          ? SizedBox(
+                                              width: 160,
+                                              child: TextField(
+                                                controller: adControllers[i][0],
+                                                decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                  counterText: '',
+                                                ),
+                                                maxLength: 18,
+                                                maxLines: 1,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
+                                                  LengthLimitingTextInputFormatter(18),
+                                                ],
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                keyboardType: TextInputType.text,
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
                                             )
                                           : Text(adData[i][0]),
                                     ),
                                     DataCell(
                                       isEditingAds
-                                          ? Row(
-                                              children: [
-                                                SizedBox(
-                                                  width: 50,
-                                                  child: TextField(
-                                                    controller: adControllers[i][1],
-                                                    maxLines: 1,
-                                                    keyboardType: TextInputType.number,
-                                                    inputFormatters: [
-                                                      FilteringTextInputFormatter.digitsOnly,
-                                                      LengthLimitingTextInputFormatter(2),
-                                                    ],
-                                                    decoration: const InputDecoration(
-                                                      border: OutlineInputBorder(),
-                                                    ),
-                                                    scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                  ),
+                                          ? SizedBox(
+                                              width: 80,
+                                              child: TextField(
+                                                controller: adControllers[i][1],
+                                                maxLines: 1,
+                                                keyboardType: TextInputType.number,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.digitsOnly,
+                                                  LengthLimitingTextInputFormatter(2),
+                                                ],
+                                                decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
                                                 ),
-                                                const SizedBox(width: 4),
-                                                const Text('Seconds'),
-                                              ],
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
                                             )
                                           : Text(adData[i][1]),
                                     ),
                                     DataCell(
                                       isEditingAds
-                                          ? TextField(
-                                              controller: adControllers[i][2],
-                                              decoration: const InputDecoration(border: OutlineInputBorder()),
+                                          ? SizedBox(
+                                              width: 220,
+                                              child: TextField(
+                                                controller: adControllers[i][2],
+                                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                maxLines: 1,
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                keyboardType: TextInputType.url,
+                                                textInputAction: TextInputAction.next,
+                                                expands: false,
+                                                scrollPadding: EdgeInsets.all(8),
+                                                style: TextStyle(overflow: TextOverflow.ellipsis),
+                                              ),
                                             )
                                           : Text(adData[i][2]),
                                     ),
