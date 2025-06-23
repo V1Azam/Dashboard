@@ -60,10 +60,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   List<bool> adToggles = [true, false];
 
   // Table data for features and ads
-  List<List<String>> featureData = [
-    ['Prayer Time', '', 'https://example.com/prayer-time', sectionOptions[0]['value']!],
-    ['Halal Pop Quiz', '', 'https://example.com/halal-pop-quiz', sectionOptions[0]['value']!],
-  ];
+  List<List<String>> featureData = [];
   List<List<String>> adData = [
     ['Mobile Ad', '5 Seconds', 'https://example.com/mobile'],
     ['TV Ad', '10 Seconds', 'https://example.com/tv'],
@@ -557,36 +554,183 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                           ),
                         ),
                         Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: DataTable(
-                              columns: [
-                                DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
-                                DataColumn(label: Text('Feature Name')),
-                                DataColumn(label: Text('Image')),
-                                DataColumn(label: Text('Link')),
-                                DataColumn(label: Text('Section')),
-                                DataColumn(label: Text('Enable')),
-                                if (isEditingFeatures)
-                                  DataColumn(label: SizedBox(width: 36)),
-                              ],
-                              rows: [
-                                ...List<DataRow>.generate(
-                                  featureData.length,
-                                  (i) => DataRow(cells: [
-                                    DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
-                                    DataCell(
-                                      isEditingFeatures
-                                          ? SizedBox(
+                          child: LayoutBuilder(
+                            builder: (context, constraints) => SingleChildScrollView(
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: DataTable(
+                                    columns: [
+                                      DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
+                                      DataColumn(label: Text('Feature Name')),
+                                      DataColumn(label: Text('Image')),
+                                      DataColumn(label: Text('Link')),
+                                      DataColumn(label: Text('Section')),
+                                      DataColumn(label: Text('Enable')),
+                                      if (isEditingFeatures)
+                                        DataColumn(label: SizedBox(width: 36)),
+                                    ],
+                                    rows: [
+                                      ...List<DataRow>.generate(
+                                        featureData.length,
+                                        (i) => DataRow(cells: [
+                                          DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
+                                          DataCell(
+                                            isEditingFeatures
+                                                ? SizedBox(
+                                                    width: 160,
+                                                    child: TextField(
+                                                      controller: featureControllers[i][0],
+                                                      decoration: const InputDecoration(
+                                                        border: OutlineInputBorder(),
+                                                        counterText: '',
+                                                      ),
+                                                      maxLength: 18,
+                                                      maxLines: 1,
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      keyboardType: TextInputType.text,
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Text(featureData[i][0]),
+                                          ),
+                                          DataCell(
+                                            isEditingFeatures
+                                                ? SizedBox(
+                                                    width: 220,
+                                                    child: TextField(
+                                                      controller: featureControllers[i][1],
+                                                      decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Image URL (optional)'),
+                                                      maxLines: 1,
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      keyboardType: TextInputType.url,
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Container(
+                                                    width: 32,
+                                                    height: 32,
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.white,
+                                                      borderRadius: BorderRadius.circular(6),
+                                                      border: Border.all(color: Colors.grey),
+                                                    ),
+                                                    alignment: Alignment.center,
+                                                    child: featureData[i][1].isNotEmpty
+                                                        ? Image.network(
+                                                            featureData[i][1],
+                                                            fit: BoxFit.contain,
+                                                            errorBuilder: (context, error, stackTrace) =>
+                                                                const Icon(Icons.image, color: Colors.grey, size: 24),
+                                                          )
+                                                        : const Icon(Icons.image, color: Colors.grey, size: 24),
+                                                  ),
+                                          ),
+                                          DataCell(
+                                            isEditingFeatures
+                                                ? SizedBox(
+                                                    width: 220,
+                                                    child: TextField(
+                                                      controller: featureControllers[i][2],
+                                                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                      maxLines: 1,
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      keyboardType: TextInputType.url,
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Text(
+                                                    featureData[i][2].length > 30
+                                                        ? featureData[i][2].substring(0, 30) + '...'
+                                                        : featureData[i][2],
+                                                    overflow: TextOverflow.ellipsis,
+                                                  ),
+                                          ),
+                                          DataCell(
+                                            isEditingFeatures
+                                                ? DropdownButton<String>(
+                                                    value: featureControllers[i][3].text,
+                                                    items: sectionOptions
+                                                        .map((opt) => DropdownMenuItem<String>(
+                                                              value: opt['value'],
+                                                              child: Text(opt['label']!),
+                                                            ))
+                                                        .toList(),
+                                                    onChanged: (val) {
+                                                      setState(() {
+                                                        featureControllers[i][3].text = val!;
+                                                      });
+                                                    },
+                                                  )
+                                                : Text(
+                                                    sectionOptions.firstWhere(
+                                                      (opt) => opt['value'] == (featureData[i].length > 3 ? featureData[i][3] : sectionOptions[0]['value']),
+                                                      orElse: () => sectionOptions[0],
+                                                    )['label']!,
+                                                  ),
+                                          ),
+                                          DataCell(
+                                            Switch(
+                                              value: featureToggles[i],
+                                              onChanged: isEditingFeatures
+                                                  ? (val) {
+                                                      setState(() {
+                                                        featureToggles[i] = val;
+                                                      });
+                                                    }
+                                                  : null,
+                                              activeColor: AppColors.accentGreen,
+                                              inactiveThumbColor: AppColors.accentBlue,
+                                            ),
+                                          ),
+                                          if (isEditingFeatures)
+                                            DataCell(
+                                              IconButton(
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                tooltip: 'Delete Row',
+                                                onPressed: () async {
+                                                  final confirm = await showDeleteConfirmationDialog(context);
+                                                  if (confirm) {
+                                                    setState(() {
+                                                      featureData.removeAt(i);
+                                                      featureToggles.removeAt(i);
+                                                      featureControllers.removeAt(i);
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                        ]),
+                                      ),
+                                      if (isAddingFeature)
+                                        DataRow(cells: [
+                                          DataCell(SizedBox(width: 32, child: Text('${featureData.length + 1}'))),
+                                          DataCell(
+                                            SizedBox(
                                               width: 160,
                                               child: TextField(
-                                                controller: featureControllers[i][0],
+                                                controller: newFeatureControllers[0],
+                                                maxLength: 18,
+                                                maxLines: 1,
+                                                inputFormatters: [
+                                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
+                                                  LengthLimitingTextInputFormatter(18),
+                                                ],
                                                 decoration: const InputDecoration(
                                                   border: OutlineInputBorder(),
                                                   counterText: '',
                                                 ),
-                                                maxLength: 18,
-                                                maxLines: 1,
                                                 scrollPhysics: AlwaysScrollableScrollPhysics(),
                                                 keyboardType: TextInputType.text,
                                                 textInputAction: TextInputAction.next,
@@ -594,15 +738,13 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 scrollPadding: EdgeInsets.all(8),
                                                 style: TextStyle(overflow: TextOverflow.ellipsis),
                                               ),
-                                            )
-                                          : Text(featureData[i][0]),
-                                    ),
-                                    DataCell(
-                                      isEditingFeatures
-                                          ? SizedBox(
+                                            ),
+                                          ),
+                                          DataCell(
+                                            SizedBox(
                                               width: 220,
                                               child: TextField(
-                                                controller: featureControllers[i][1],
+                                                controller: newFeatureControllers[1],
                                                 decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Image URL (optional)'),
                                                 maxLines: 1,
                                                 scrollPhysics: AlwaysScrollableScrollPhysics(),
@@ -612,53 +754,29 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 scrollPadding: EdgeInsets.all(8),
                                                 style: TextStyle(overflow: TextOverflow.ellipsis),
                                               ),
-                                            )
-                                          : Container(
-                                              width: 32,
-                                              height: 32,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(6),
-                                                border: Border.all(color: Colors.grey),
-                                              ),
-                                              alignment: Alignment.center,
-                                              child: featureData[i][1].isNotEmpty
-                                                  ? Image.network(
-                                                      featureData[i][1],
-                                                      fit: BoxFit.contain,
-                                                      errorBuilder: (context, error, stackTrace) =>
-                                                          const Icon(Icons.image, color: Colors.grey, size: 24),
-                                                    )
-                                                  : const Icon(Icons.image, color: Colors.grey, size: 24),
                                             ),
-                                    ),
-                                    DataCell(
-                                      isEditingFeatures
-                                          ? SizedBox(
+                                          ),
+                                          DataCell(
+                                            SizedBox(
                                               width: 220,
                                               child: TextField(
-                                                controller: featureControllers[i][2],
-                                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                controller: newFeatureControllers[2],
                                                 maxLines: 1,
-                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
                                                 keyboardType: TextInputType.url,
+                                                decoration: const InputDecoration(
+                                                  border: OutlineInputBorder(),
+                                                ),
+                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
                                                 textInputAction: TextInputAction.next,
                                                 expands: false,
                                                 scrollPadding: EdgeInsets.all(8),
                                                 style: TextStyle(overflow: TextOverflow.ellipsis),
                                               ),
-                                            )
-                                          : Text(
-                                              featureData[i][2].length > 30
-                                                  ? featureData[i][2].substring(0, 30) + '...'
-                                                  : featureData[i][2],
-                                              overflow: TextOverflow.ellipsis,
                                             ),
-                                    ),
-                                    DataCell(
-                                      isEditingFeatures
-                                          ? DropdownButton<String>(
-                                              value: featureControllers[i][3].text,
+                                          ),
+                                          DataCell(
+                                            DropdownButton<String>(
+                                              value: newFeatureControllers[3].text,
                                               items: sectionOptions
                                                   .map((opt) => DropdownMenuItem<String>(
                                                         value: opt['value'],
@@ -667,142 +785,29 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                   .toList(),
                                               onChanged: (val) {
                                                 setState(() {
-                                                  featureControllers[i][3].text = val!;
+                                                  newFeatureControllers[3].text = val!;
                                                 });
                                               },
-                                            )
-                                          : Text(
-                                              sectionOptions.firstWhere(
-                                                (opt) => opt['value'] == (featureData[i].length > 3 ? featureData[i][3] : sectionOptions[0]['value']),
-                                                orElse: () => sectionOptions[0],
-                                              )['label']!,
                                             ),
-                                    ),
-                                    DataCell(
-                                      Switch(
-                                        value: featureToggles[i],
-                                        onChanged: isEditingFeatures
-                                            ? (val) {
+                                          ),
+                                          DataCell(
+                                            Switch(
+                                              value: newFeatureEnabled,
+                                              onChanged: (val) {
                                                 setState(() {
-                                                  featureToggles[i] = val;
+                                                  newFeatureEnabled = val;
                                                 });
-                                              }
-                                            : null,
-                                        activeColor: AppColors.accentGreen,
-                                        inactiveThumbColor: AppColors.accentBlue,
-                                      ),
-                                    ),
-                                    if (isEditingFeatures)
-                                      DataCell(
-                                        IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          tooltip: 'Delete Row',
-                                          onPressed: () async {
-                                            final confirm = await showDeleteConfirmationDialog(context);
-                                            if (confirm) {
-                                              setState(() {
-                                                featureData.removeAt(i);
-                                                featureToggles.removeAt(i);
-                                                featureControllers.removeAt(i);
-                                              });
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                  ]),
+                                              },
+                                              activeColor: AppColors.accentGreen,
+                                              inactiveThumbColor: AppColors.accentBlue,
+                                            ),
+                                          ),
+                                        ]),
+                                    ],
+                                    columnSpacing: 10,
+                                  ),
                                 ),
-                                if (isAddingFeature)
-                                  DataRow(cells: [
-                                    DataCell(SizedBox(width: 32, child: Text('${featureData.length + 1}'))),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 160,
-                                        child: TextField(
-                                          controller: newFeatureControllers[0],
-                                          maxLength: 18,
-                                          maxLines: 1,
-                                          inputFormatters: [
-                                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
-                                            LengthLimitingTextInputFormatter(18),
-                                          ],
-                                          decoration: const InputDecoration(
-                                            border: OutlineInputBorder(),
-                                            counterText: '',
-                                          ),
-                                          scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                          keyboardType: TextInputType.text,
-                                          textInputAction: TextInputAction.next,
-                                          expands: false,
-                                          scrollPadding: EdgeInsets.all(8),
-                                          style: TextStyle(overflow: TextOverflow.ellipsis),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 220,
-                                        child: TextField(
-                                          controller: newFeatureControllers[1],
-                                          decoration: const InputDecoration(border: OutlineInputBorder(), hintText: 'Image URL (optional)'),
-                                          maxLines: 1,
-                                          scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                          keyboardType: TextInputType.url,
-                                          textInputAction: TextInputAction.next,
-                                          expands: false,
-                                          scrollPadding: EdgeInsets.all(8),
-                                          style: TextStyle(overflow: TextOverflow.ellipsis),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      SizedBox(
-                                        width: 220,
-                                        child: TextField(
-                                          controller: newFeatureControllers[2],
-                                          maxLines: 1,
-                                          keyboardType: TextInputType.url,
-                                          decoration: const InputDecoration(
-                                            border: OutlineInputBorder(),
-                                          ),
-                                          scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                          textInputAction: TextInputAction.next,
-                                          expands: false,
-                                          scrollPadding: EdgeInsets.all(8),
-                                          style: TextStyle(overflow: TextOverflow.ellipsis),
-                                        ),
-                                      ),
-                                    ),
-                                    DataCell(
-                                      DropdownButton<String>(
-                                        value: newFeatureControllers[3].text,
-                                        items: sectionOptions
-                                            .map((opt) => DropdownMenuItem<String>(
-                                                  value: opt['value'],
-                                                  child: Text(opt['label']!),
-                                                ))
-                                            .toList(),
-                                        onChanged: (val) {
-                                          setState(() {
-                                            newFeatureControllers[3].text = val!;
-                                          });
-                                        },
-                                      ),
-                                    ),
-                                    DataCell(
-                                      Switch(
-                                        value: newFeatureEnabled,
-                                        onChanged: (val) {
-                                          setState(() {
-                                            newFeatureEnabled = val;
-                                          });
-                                        },
-                                        activeColor: AppColors.accentGreen,
-                                        inactiveThumbColor: AppColors.accentBlue,
-                                      ),
-                                    ),
-                                  ]),
-                              ],
-                              columnSpacing: 10,
+                              ),
                             ),
                           ),
                         ),
@@ -875,212 +880,168 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                           ),
                         ),
                         Expanded(
-                          child: SingleChildScrollView(
-                            scrollDirection: Axis.vertical,
-                            child: Builder(
-                              builder: (context) {
-                                final List<DataRow> adRows = List<DataRow>.generate(
-                                  adData.length,
-                                  (i) => DataRow(cells: [
-                                    DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
-                                    DataCell(
-                                      isEditingAds
-                                          ? SizedBox(
-                                              width: 160,
-                                              child: TextField(
-                                                controller: adControllers[i][0],
-                                                decoration: const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                  counterText: '',
+                          child: LayoutBuilder(
+                            builder: (context, constraints) => SingleChildScrollView(
+                              scrollDirection: Axis.vertical,
+                              child: SingleChildScrollView(
+                                scrollDirection: Axis.horizontal,
+                                child: ConstrainedBox(
+                                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                                  child: Builder(
+                                    builder: (context) {
+                                      final List<DataRow> adRows = List<DataRow>.generate(
+                                        adData.length,
+                                        (i) => DataRow(cells: [
+                                          DataCell(SizedBox(width: 32, child: Text('${i + 1}'))),
+                                          DataCell(
+                                            isEditingAds
+                                                ? SizedBox(
+                                                    width: 160,
+                                                    child: TextField(
+                                                      controller: adControllers[i][0],
+                                                      decoration: const InputDecoration(
+                                                        border: OutlineInputBorder(),
+                                                        counterText: '',
+                                                      ),
+                                                      maxLength: 18,
+                                                      maxLines: 1,
+                                                      inputFormatters: [
+                                                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
+                                                        LengthLimitingTextInputFormatter(18),
+                                                      ],
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      keyboardType: TextInputType.text,
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Text(adData[i][0]),
+                                          ),
+                                          DataCell(
+                                            isEditingAds
+                                                ? SizedBox(
+                                                    width: 80,
+                                                    child: TextField(
+                                                      controller: adControllers[i][1],
+                                                      maxLines: 1,
+                                                      keyboardType: TextInputType.number,
+                                                      inputFormatters: [
+                                                        FilteringTextInputFormatter.digitsOnly,
+                                                        LengthLimitingTextInputFormatter(2),
+                                                      ],
+                                                      decoration: const InputDecoration(
+                                                        border: OutlineInputBorder(),
+                                                      ),
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Text(adData[i][1]),
+                                          ),
+                                          DataCell(
+                                            isEditingAds
+                                                ? SizedBox(
+                                                    width: 220,
+                                                    child: TextField(
+                                                      controller: adControllers[i][2],
+                                                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                      maxLines: 1,
+                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                      keyboardType: TextInputType.url,
+                                                      textInputAction: TextInputAction.next,
+                                                      expands: false,
+                                                      scrollPadding: EdgeInsets.all(8),
+                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
+                                                    ),
+                                                  )
+                                                : Text(adData[i][2]),
+                                          ),
+                                          DataCell(
+                                            Switch(
+                                              value: adToggles[i],
+                                              onChanged: isEditingAds
+                                                  ? (val) {
+                                                      setState(() {
+                                                        adToggles[i] = val;
+                                                      });
+                                                    }
+                                                  : null,
+                                              activeColor: AppColors.accentGreen,
+                                              inactiveThumbColor: AppColors.accentBlue,
+                                            ),
+                                          ),
+                                          if (isEditingAds)
+                                            DataCell(
+                                              IconButton(
+                                                icon: const Icon(Icons.delete, color: Colors.red),
+                                                tooltip: 'Delete Row',
+                                                onPressed: () async {
+                                                  final confirm = await showDeleteConfirmationDialog(context);
+                                                  if (confirm) {
+                                                    setState(() {
+                                                      adData.removeAt(i);
+                                                      adToggles.removeAt(i);
+                                                      adControllers.removeAt(i);
+                                                    });
+                                                  }
+                                                },
+                                              ),
+                                            ),
+                                        ]),
+                                      );
+                                      if (isAddingAd) {
+                                        adRows.add(
+                                          DataRow(cells: [
+                                            DataCell(SizedBox(width: 32, child: Text('${adData.length + 1}'))),
+                                            DataCell(
+                                              SizedBox(
+                                                width: 160,
+                                                child: TextField(
+                                                  controller: newAdControllers[0],
+                                                  maxLength: 18,
+                                                  maxLines: 1,
+                                                  inputFormatters: [
+                                                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
+                                                    LengthLimitingTextInputFormatter(18),
+                                                  ],
+                                                  decoration: const InputDecoration(
+                                                    border: OutlineInputBorder(),
+                                                    counterText: '',
+                                                  ),
+                                                  scrollPhysics: AlwaysScrollableScrollPhysics(),
+                                                  keyboardType: TextInputType.text,
+                                                  textInputAction: TextInputAction.next,
+                                                  expands: false,
+                                                  scrollPadding: EdgeInsets.all(8),
+                                                  style: TextStyle(overflow: TextOverflow.ellipsis),
                                                 ),
-                                                maxLength: 18,
-                                                maxLines: 1,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
-                                                  LengthLimitingTextInputFormatter(18),
-                                                ],
-                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                keyboardType: TextInputType.text,
-                                                textInputAction: TextInputAction.next,
-                                                expands: false,
-                                                scrollPadding: EdgeInsets.all(8),
-                                                style: TextStyle(overflow: TextOverflow.ellipsis),
                                               ),
-                                            )
-                                          : Text(adData[i][0]),
-                                    ),
-                                    DataCell(
-                                      isEditingAds
-                                          ? SizedBox(
-                                              width: 80,
-                                              child: TextField(
-                                                controller: adControllers[i][1],
-                                                maxLines: 1,
-                                                keyboardType: TextInputType.number,
-                                                inputFormatters: [
-                                                  FilteringTextInputFormatter.digitsOnly,
-                                                  LengthLimitingTextInputFormatter(2),
-                                                ],
-                                                decoration: const InputDecoration(
-                                                  border: OutlineInputBorder(),
-                                                ),
-                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                textInputAction: TextInputAction.next,
-                                                expands: false,
-                                                scrollPadding: EdgeInsets.all(8),
-                                                style: TextStyle(overflow: TextOverflow.ellipsis),
-                                              ),
-                                            )
-                                          : Text(adData[i][1]),
-                                    ),
-                                    DataCell(
-                                      isEditingAds
-                                          ? SizedBox(
-                                              width: 220,
-                                              child: TextField(
-                                                controller: adControllers[i][2],
-                                                decoration: const InputDecoration(border: OutlineInputBorder()),
-                                                maxLines: 1,
-                                                scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                keyboardType: TextInputType.url,
-                                                textInputAction: TextInputAction.next,
-                                                expands: false,
-                                                scrollPadding: EdgeInsets.all(8),
-                                                style: TextStyle(overflow: TextOverflow.ellipsis),
-                                              ),
-                                            )
-                                          : Text(adData[i][2]),
-                                    ),
-                                    DataCell(
-                                      Switch(
-                                        value: adToggles[i],
-                                        onChanged: isEditingAds
-                                            ? (val) {
-                                                setState(() {
-                                                  adToggles[i] = val;
-                                                });
-                                              }
-                                            : null,
-                                        activeColor: AppColors.accentGreen,
-                                        inactiveThumbColor: AppColors.accentBlue,
-                                      ),
-                                    ),
-                                    if (isEditingAds)
-                                      DataCell(
-                                        IconButton(
-                                          icon: const Icon(Icons.delete, color: Colors.red),
-                                          tooltip: 'Delete Row',
-                                          onPressed: () async {
-                                            final confirm = await showDeleteConfirmationDialog(context);
-                                            if (confirm) {
-                                              setState(() {
-                                                adData.removeAt(i);
-                                                adToggles.removeAt(i);
-                                                adControllers.removeAt(i);
-                                              });
-                                            }
-                                          },
-                                        ),
-                                      ),
-                                  ]),
-                                );
-                                if (isAddingAd) {
-                                  adRows.add(
-                                    DataRow(cells: [
-                                      DataCell(SizedBox(width: 32, child: Text('${adData.length + 1}'))),
-                                      DataCell(
-                                        SizedBox(
-                                          width: 160,
-                                          child: TextField(
-                                            controller: newAdControllers[0],
-                                            maxLength: 18,
-                                            maxLines: 1,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
-                                              LengthLimitingTextInputFormatter(18),
-                                            ],
-                                            decoration: const InputDecoration(
-                                              border: OutlineInputBorder(),
-                                              counterText: '',
                                             ),
-                                            scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                            keyboardType: TextInputType.text,
-                                            textInputAction: TextInputAction.next,
-                                            expands: false,
-                                            scrollPadding: EdgeInsets.all(8),
-                                            style: TextStyle(overflow: TextOverflow.ellipsis),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        SizedBox(
-                                          width: 80,
-                                          child: TextField(
-                                            controller: newAdControllers[1],
-                                            maxLines: 1,
-                                            keyboardType: TextInputType.number,
-                                            inputFormatters: [
-                                              FilteringTextInputFormatter.digitsOnly,
-                                              LengthLimitingTextInputFormatter(2),
-                                            ],
-                                            decoration: const InputDecoration(
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                            textInputAction: TextInputAction.next,
-                                            expands: false,
-                                            scrollPadding: EdgeInsets.all(8),
-                                            style: TextStyle(overflow: TextOverflow.ellipsis),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        SizedBox(
-                                          width: 220,
-                                          child: TextField(
-                                            controller: newAdControllers[2],
-                                            maxLines: 1,
-                                            keyboardType: TextInputType.url,
-                                            decoration: const InputDecoration(
-                                              border: OutlineInputBorder(),
-                                            ),
-                                            scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                            textInputAction: TextInputAction.next,
-                                            expands: false,
-                                            scrollPadding: EdgeInsets.all(8),
-                                            style: TextStyle(overflow: TextOverflow.ellipsis),
-                                          ),
-                                        ),
-                                      ),
-                                      DataCell(
-                                        Switch(
-                                          value: newAdEnabled,
-                                          onChanged: (val) {
-                                            setState(() {
-                                              newAdEnabled = val;
-                                            });
-                                          },
-                                          activeColor: AppColors.accentGreen,
-                                          inactiveThumbColor: AppColors.accentBlue,
-                                        ),
-                                      ),
-                                    ]),
-                                  );
-                                }
-                                return DataTable(
-                                  columns: [
-                                    DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
-                                    DataColumn(label: Text('Ad Name')),
-                                    DataColumn(label: Text('Frequency')),
-                                    DataColumn(label: Text('Link')),
-                                    DataColumn(label: Text('Enable')),
-                                    if (isEditingAds)
-                                      DataColumn(label: SizedBox(width: 36)),
-                                  ],
-                                  rows: adRows,
-                                  columnSpacing: 10,
-                                );
-                              },
+                                          ]),
+                                        );
+                                      }
+                                      return DataTable(
+                                        columns: [
+                                          DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
+                                          DataColumn(label: Text('Ad Name')),
+                                          DataColumn(label: Text('Frequency')),
+                                          DataColumn(label: Text('Link')),
+                                          DataColumn(label: Text('Enable')),
+                                          if (isEditingAds)
+                                            DataColumn(label: SizedBox(width: 36)),
+                                        ],
+                                        rows: adRows,
+                                        columnSpacing: 10,
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
                             ),
                           ),
                         ),
