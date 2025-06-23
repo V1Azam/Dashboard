@@ -90,6 +90,12 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   bool isAddingAd = false;
   List<TextEditingController> newAdControllers = [];
 
+  // Add this constant for dropdown options
+  static const List<Map<String, String>> sectionOptions = [
+    {'label': 'Extra Features', 'value': 'extraFeatures'},
+    {'label': 'Stay Connected', 'value': 'stayConnected'},
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -99,7 +105,11 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   void _initControllers() {
     featureControllers = featureData
-        .map((row) => row.map((cell) => TextEditingController(text: cell)).toList())
+        .map((row) => [
+              TextEditingController(text: row[0]),
+              TextEditingController(text: row[1]),
+              TextEditingController(text: row.length > 2 ? row[2] : sectionOptions[0]['value']!),
+            ])
         .toList();
     adControllers = adData
         .map((row) => [
@@ -160,9 +170,18 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     }
     // Add current UI rows
     for (int i = 0; i < featureData.length; i++) {
+      // Ensure section is always the value, not the label
+      String sectionValue = (featureData[i].length > 2 ? featureData[i][2] : sectionOptions[0]['value']) ?? sectionOptions[0]['value']!;
+      // If it's a label, convert to value
+      final found = sectionOptions.firstWhere(
+        (opt) => opt['value'] == sectionValue || opt['label'] == sectionValue,
+        orElse: () => sectionOptions[0],
+      );
+      sectionValue = found['value'] ?? sectionOptions[0]['value']!;
       await pb.collection('features').create(body: {
         'featureName': featureData[i][0],
         'link': featureData[i][1],
+        'section': sectionValue,
         'isEnabled': featureToggles[i],
       });
     }
@@ -212,8 +231,12 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     }
     setState(() {
       for (int i = 0; i < featureData.length; i++) {
-        for (int j = 0; j < featureData[i].length; j++) {
-          featureData[i][j] = featureControllers[i][j].text;
+        featureData[i][0] = featureControllers[i][0].text;
+        featureData[i][1] = featureControllers[i][1].text;
+        if (featureData[i].length < 3) {
+          featureData[i].add(featureControllers[i][2].text);
+        } else {
+          featureData[i][2] = featureControllers[i][2].text;
         }
       }
       isEditingFeatures = false;
@@ -270,6 +293,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       newFeatureControllers = [
         TextEditingController(), // Feature Name
         TextEditingController(), // Link
+        TextEditingController(text: sectionOptions[0]['value']!), // Section (default)
       ];
     });
   }
@@ -277,6 +301,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   void _onDoneAddFeature() async {
     final name = newFeatureControllers[0].text.trim();
     final url = newFeatureControllers[1].text.trim();
+    final section = newFeatureControllers[2].text.trim();
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
     final urlRegExp = RegExp(r'^(https?:\/\/)[\w\-]+(\.[\w\-]+)+([\/\w\-\.\?\=\&\#]*)?$');
     String? error;
@@ -301,6 +326,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       featureData.add([
         name,
         url,
+        section,
       ]);
       featureToggles.add(false); // default to disabled
       isAddingFeature = false;
@@ -497,6 +523,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                 DataColumn(label: Text('S/N')),
                                 DataColumn(label: Text('Feature Name')),
                                 DataColumn(label: Text('Link')),
+                                DataColumn(label: Text('Section')),
                                 DataColumn(label: Text('Enable')),
                               ],
                               rows: [
@@ -521,6 +548,29 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                           : Text(featureData[i][1]),
                                     ),
                                     DataCell(
+                                      isEditingFeatures
+                                          ? DropdownButton<String>(
+                                              value: featureControllers[i][2].text,
+                                              items: sectionOptions
+                                                  .map((opt) => DropdownMenuItem<String>(
+                                                        value: opt['value'],
+                                                        child: Text(opt['label']!),
+                                                      ))
+                                                  .toList(),
+                                              onChanged: (val) {
+                                                setState(() {
+                                                  featureControllers[i][2].text = val!;
+                                                });
+                                              },
+                                            )
+                                          : Text(
+                                              sectionOptions.firstWhere(
+                                                (opt) => opt['value'] == (featureData[i].length > 2 ? featureData[i][2] : sectionOptions[0]['value']),
+                                                orElse: () => sectionOptions[0],
+                                              )['label']!,
+                                            ),
+                                    ),
+                                    DataCell(
                                       Switch(
                                         value: featureToggles[i],
                                         onChanged: isEditingFeatures
@@ -528,7 +578,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 setState(() {
                                                   featureToggles[i] = val;
                                                 });
-                                                log('Feature \\${i + 1} toggled:  \\${val.toString()}');
                                               }
                                             : null,
                                         activeColor: AppColors.accentGreen,
@@ -571,6 +620,22 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                           ),
                                           scrollPhysics: AlwaysScrollableScrollPhysics(),
                                         ),
+                                      ),
+                                    ),
+                                    DataCell(
+                                      DropdownButton<String>(
+                                        value: newFeatureControllers[2].text,
+                                        items: sectionOptions
+                                            .map((opt) => DropdownMenuItem<String>(
+                                                  value: opt['value'],
+                                                  child: Text(opt['label']!),
+                                                ))
+                                            .toList(),
+                                        onChanged: (val) {
+                                          setState(() {
+                                            newFeatureControllers[2].text = val!;
+                                          });
+                                        },
                                       ),
                                     ),
                                     const DataCell(SizedBox()), // No enable switch for new row

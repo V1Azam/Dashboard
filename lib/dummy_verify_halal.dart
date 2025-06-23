@@ -55,7 +55,8 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  List<Map<String, dynamic>> features = [];
+  List<Map<String, dynamic>> extraFeatures = [];
+  List<Map<String, dynamic>> stayConnectedFeatures = [];
   bool isLoading = true;
   String? errorMessage;
 
@@ -77,16 +78,17 @@ class _MyHomePageState extends State<MyHomePage> {
           'Cache-Control': 'no-cache',
         },
       );
-      
-      final enabledFeatures = records.where((r) => r.data['isEnabled'] == true).toList();
-      
+      final enabled = records.where((r) => r.data['isEnabled'] == true).toList();
+      final extra = enabled.where((r) => r.data['section'] == 'extraFeatures').map((r) => r.data).toList();
+      final stay = enabled.where((r) => r.data['section'] == 'stayConnected').map((r) => r.data).toList();
       setState(() {
-        features = enabledFeatures.map((r) => r.data).toList();
+        extraFeatures = extra;
+        stayConnectedFeatures = stay;
         isLoading = false;
-        if (features.isEmpty && records.isNotEmpty) {
-          errorMessage = 'Connection successful, but no features are currently enabled. Please check the admin dashboard.';
+        if (extraFeatures.isEmpty && stayConnectedFeatures.isEmpty && records.isNotEmpty) {
+          errorMessage = 'No Features Enabled.';
         } else if (records.isEmpty) {
-          errorMessage = 'Connection successful, but the "features" collection is empty.';
+          errorMessage = 'Feature List Empty.';
         }
       });
     } on pocketbase.ClientException catch (e) {
@@ -143,7 +145,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               SliverPadding(
                 padding: const EdgeInsets.all(24),
-                sliver: _buildContentSliver(),
+                sliver: _buildSectionGrid(extraFeatures),
               ),
               const SliverToBoxAdapter(
                 child: Padding(
@@ -158,6 +160,10 @@ class _MyHomePageState extends State<MyHomePage> {
                   ),
                 ),
               ),
+              SliverPadding(
+                padding: const EdgeInsets.all(24),
+                sliver: _buildSectionGrid(stayConnectedFeatures),
+              ),
             ],
           ),
         ),
@@ -165,21 +171,22 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
-  Widget _buildContentSliver() {
+  Widget _buildSectionGrid(List<Map<String, dynamic>> features) {
     if (isLoading) {
       return const SliverFillRemaining(
         hasScrollBody: false,
         child: Center(child: CircularProgressIndicator()),
       );
     }
-
-    if (errorMessage != null) {
+    if (errorMessage != null && features.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
         child: Center(child: ErrorDisplayCard(message: errorMessage!)),
       );
     }
-
+    if (features.isEmpty) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
     return SliverGrid(
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
@@ -196,7 +203,7 @@ class _MyHomePageState extends State<MyHomePage> {
               borderRadius: BorderRadius.circular(12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
+                  color: Colors.black.withOpacity(0.1),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 ),
