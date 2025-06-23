@@ -3,6 +3,7 @@ import 'package:dashboard/Theme/app_colors.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'dart:async';
 import 'package:pocketbase/pocketbase.dart' as pocketbase;
+import 'package:url_launcher/url_launcher.dart';
 
 final pb = PocketBase('http://10.0.2.2:8090');
 
@@ -210,42 +211,58 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
               ],
             ),
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    if (imageUrl != null && imageUrl.toString().trim().isNotEmpty)
-                      Container(
-                        height: 60,
-                        width: 60,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: Colors.grey.shade300),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: () async {
+                final link = feature['link']?.toString() ?? '';
+                if (link.isNotEmpty && isValidUrl(link)) {
+                  final uri = Uri.parse(link);
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Could not open the link.'), backgroundColor: Colors.red),
+                    );
+                  }
+                }
+              },
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 12.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (imageUrl != null && imageUrl.toString().trim().isNotEmpty)
+                        Container(
+                          height: 60,
+                          width: 60,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey.shade300),
+                          ),
+                          child: Image.network(
+                            imageUrl,
+                            fit: BoxFit.contain,
+                            errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, color: Colors.grey, size: 30),
+                          ),
                         ),
-                        child: Image.network(
-                          imageUrl,
-                          fit: BoxFit.contain,
-                          errorBuilder: (context, error, stackTrace) => const Icon(Icons.image, color: Colors.grey, size: 30),
+                      const SizedBox(height: 8),
+                      Text(
+                        feature['featureName'] ?? 'Unknown Feature',
+                        style: const TextStyle(
+                          color: Colors.black,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          height: 1.1,
                         ),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    const SizedBox(height: 8),
-                    Text(
-                      feature['featureName'] ?? 'Unknown Feature',
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                        height: 1.1,
-                      ),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -254,6 +271,15 @@ class _MyHomePageState extends State<MyHomePage> {
         childCount: features.length,
       ),
     );
+  }
+
+  bool isValidUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      return uri.hasScheme && (uri.scheme == 'http' || uri.scheme == 'https') && uri.host.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
   }
 }
 
