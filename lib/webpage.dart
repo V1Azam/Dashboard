@@ -34,6 +34,8 @@ class AppTheme {
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -45,6 +47,8 @@ class MyApp extends StatelessWidget {
 }
 
 class NavigationRailExample extends StatefulWidget {
+  const NavigationRailExample({super.key});
+
   @override
   State<NavigationRailExample> createState() => _NavigationRailExampleState();
 }
@@ -251,7 +255,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     setState(() {
       for (int i = 0; i < adData.length; i++) {
         adData[i][0] = adControllers[i][0].text;
-        adData[i][1] = adControllers[i][1].text + ' Seconds';
+        adData[i][1] = '${adControllers[i][1].text} Seconds';
         adData[i][2] = adControllers[i][2].text;
       }
       isEditingAds = false;
