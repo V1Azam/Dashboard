@@ -62,8 +62,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   // Table data for features and ads
   List<List<String>> featureData = [];
   List<List<String>> adData = [
-    ['Mobile Ad', '5 Seconds', 'https://example.com/mobile'],
-    ['TV Ad', '10 Seconds', 'https://example.com/tv'],
+    ['Promotion Ads', 'Banner', 'AD001', 'Banner'],
+    ['Game Ads', 'Interstitial', 'AD002', 'Video'],
   ];
 
   // Last saved data for revert
@@ -82,9 +82,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   bool isAddingFeature = false;
   List<TextEditingController> newFeatureControllers = [];
-
-  bool isAddingAd = false;
-  List<TextEditingController> newAdControllers = [];
 
   // Add this constant for dropdown options
   static const List<Map<String, String>> sectionOptions = [
@@ -114,9 +111,10 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         .toList();
     adControllers = adData
         .map((row) => [
-              TextEditingController(text: row[0]),
-              TextEditingController(text: row[1].replaceAll(RegExp(r'\s*Seconds$', caseSensitive: false), '')),
-              TextEditingController(text: row[2]),
+              TextEditingController(text: row[0]), // Ad Name
+              TextEditingController(text: row[1]), // Ad Placement
+              TextEditingController(text: row[2]), // Ad ID
+              TextEditingController(text: row[3]), // Ad Type
             ])
         .toList();
   }
@@ -199,8 +197,9 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     for (int i = 0; i < adData.length; i++) {
       await pb.collection('ads').create(body: {
         'adName': adData[i][0],
-        'freq': adData[i][1],
-        'link': adData[i][2],
+        'adPlacement': adData[i][1],
+        'adID': adData[i][2],
+        'adType': adData[i][3],
         'isEnabled': adToggles[i],
       });
     }
@@ -259,8 +258,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
     for (int i = 0; i < adData.length; i++) {
       final name = adControllers[i][0].text.trim();
-      final freqRaw = adControllers[i][1].text.trim();
-      final url = adControllers[i][2].text.trim();
+      final adID = adControllers[i][2].text.trim();
       String? error;
       if (name.isEmpty) {
         error = 'Ad name cannot be empty (row ${i + 1}).';
@@ -268,14 +266,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         error = 'Ad name must be 18 characters or less (row ${i + 1}).';
       } else if (!nameRegExp.hasMatch(name)) {
         error = 'Ad name contains invalid characters (row ${i + 1}).';
-      } else if (freqRaw.isEmpty) {
-        error = 'Frequency cannot be empty (row ${i + 1}).';
-      } else if (int.tryParse(freqRaw) == null || int.parse(freqRaw) < 1 || int.parse(freqRaw) > 15) {
-        error = 'Frequency must be an integer between 1 and 15 (row ${i + 1}).';
-      } else if (url.isEmpty) {
-        error = 'URL cannot be empty (row ${i + 1}).';
-      } else if (!isValidUrl(url)) {
-        error = 'Please enter a valid URL (row ${i + 1}).';
+      } else if (adID.isEmpty) {
+        error = 'Ad ID cannot be empty (row ${i + 1}).';
       }
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -287,7 +279,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
     setState(() {
       for (int i = 0; i < adData.length; i++) {
         adData[i][0] = adControllers[i][0].text;
-        adData[i][1] = '${adControllers[i][1].text} Seconds';
         adData[i][2] = adControllers[i][2].text;
       }
       isEditingAds = false;
@@ -356,69 +347,6 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
       isAddingFeature = false;
       newFeatureControllers = [];
       newFeatureEnabled = false;
-    });
-  }
-
-  void _onAddAdPressed() {
-    setState(() {
-      isAddingAd = true;
-      newAdControllers = [
-        TextEditingController(), // Ad Name
-        TextEditingController(), // Frequency
-        TextEditingController(), // Link
-      ];
-      newAdEnabled = false;
-    });
-  }
-
-  void _onDoneAddAd() async {
-    final name = newAdControllers[0].text.trim();
-    final freq = newAdControllers[1].text.trim();
-    final url = newAdControllers[2].text.trim();
-    final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
-    String? error;
-    if (name.isEmpty) {
-      error = 'Ad name cannot be empty.';
-    } else if (name.length > 18) {
-      error = 'Ad name must be 18 characters or less.';
-    } else if (!nameRegExp.hasMatch(name)) {
-      error = 'Ad name contains invalid characters.';
-    } else if (freq.isEmpty) {
-      error = 'Frequency cannot be empty.';
-    } else if (int.tryParse(freq) == null || int.parse(freq) < 1 || int.parse(freq) > 15) {
-      error = 'Frequency must be an integer between 1 and 15.';
-    } else if (url.isEmpty) {
-      error = 'URL cannot be empty.';
-    } else if (!isValidUrl(url)) {
-      error = 'Please enter a valid URL.';
-    }
-    if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error), backgroundColor: Colors.red),
-      );
-      return;
-    }
-    final freqWithSeconds = '$freq Seconds';
-    setState(() {
-      adData.add([
-        name,
-        freqWithSeconds,
-        url,
-      ]);
-      adToggles.add(newAdEnabled); // use toggle value
-      isAddingAd = false;
-      newAdControllers = [];
-      _initControllers();
-      _saveLastState();
-    });
-    await _syncAdsToPocketBase();
-  }
-
-  void _onCancelAddAd() {
-    setState(() {
-      isAddingAd = false;
-      newAdControllers = [];
-      newAdEnabled = false;
     });
   }
 
@@ -825,55 +753,23 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                               Text('Ad Activity', style: AppColors.boldTitle.copyWith(fontSize: 24)),
                               Row(
                                 children: [
-                                  if (!isAddingAd && !isEditingAds) ...[
-                                    IconButton(
-                                      icon: const Icon(Icons.add, color: AppColors.accentBlue),
-                                      tooltip: 'Add Ad',
-                                      onPressed: _onAddAdPressed,
-                                      color: AppColors.accentGreen,
-                                      style: ButtonStyle(
-                                        backgroundColor: WidgetStateProperty.all(AppColors.accentGreen),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                  ],
-                                  if (!isAddingAd)
-                                    isEditingAds
-                                        ? ElevatedButton(
-                                            onPressed: _onSaveAds,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.accentBlue,
-                                              foregroundColor: AppColors.accentGreen,
-                                            ),
-                                            child: const Text('Save'),
-                                          )
-                                        : ElevatedButton(
-                                            onPressed: _onEditAds,
-                                            style: ElevatedButton.styleFrom(
-                                              backgroundColor: AppColors.accentGreen,
-                                              foregroundColor: AppColors.accentBlue,
-                                            ),
-                                            child: const Text('Edit'),
+                                  isEditingAds
+                                      ? ElevatedButton(
+                                          onPressed: _onSaveAds,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentBlue,
+                                            foregroundColor: AppColors.accentGreen,
                                           ),
-                                  if (isAddingAd) ...[
-                                    ElevatedButton(
-                                      onPressed: _onDoneAddAd,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.accentGreen,
-                                        foregroundColor: AppColors.accentBlue,
-                                      ),
-                                      child: const Text('Done'),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    ElevatedButton(
-                                      onPressed: _onCancelAddAd,
-                                      style: ElevatedButton.styleFrom(
-                                        backgroundColor: AppColors.accentBlue,
-                                        foregroundColor: AppColors.accentGreen,
-                                      ),
-                                      child: const Text('Cancel'),
-                                    ),
-                                  ]
+                                          child: const Text('Save'),
+                                        )
+                                      : ElevatedButton(
+                                          onPressed: _onEditAds,
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: AppColors.accentGreen,
+                                            foregroundColor: AppColors.accentBlue,
+                                          ),
+                                          child: const Text('Edit'),
+                                        ),
                                 ],
                               ),
                             ],
@@ -920,39 +816,26 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                 : Text(adData[i][0]),
                                           ),
                                           DataCell(
-                                            isEditingAds
-                                                ? SizedBox(
-                                                    width: 80,
-                                                    child: TextField(
-                                                      controller: adControllers[i][1],
-                                                      maxLines: 1,
-                                                      keyboardType: TextInputType.number,
-                                                      inputFormatters: [
-                                                        FilteringTextInputFormatter.digitsOnly,
-                                                        LengthLimitingTextInputFormatter(2),
-                                                      ],
-                                                      decoration: const InputDecoration(
-                                                        border: OutlineInputBorder(),
-                                                      ),
-                                                      scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                      textInputAction: TextInputAction.next,
-                                                      expands: false,
-                                                      scrollPadding: EdgeInsets.all(8),
-                                                      style: TextStyle(overflow: TextOverflow.ellipsis),
-                                                    ),
-                                                  )
-                                                : Text(adData[i][1]),
+                                            Text(adData[i][1]),
                                           ),
                                           DataCell(
                                             isEditingAds
                                                 ? SizedBox(
-                                                    width: 220,
+                                                    width: 160,
                                                     child: TextField(
                                                       controller: adControllers[i][2],
-                                                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                                                      decoration: const InputDecoration(
+                                                        border: OutlineInputBorder(),
+                                                        counterText: '',
+                                                      ),
+                                                      maxLength: 18,
                                                       maxLines: 1,
+                                                      inputFormatters: [
+                                                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
+                                                        LengthLimitingTextInputFormatter(18),
+                                                      ],
                                                       scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                      keyboardType: TextInputType.url,
+                                                      keyboardType: TextInputType.text,
                                                       textInputAction: TextInputAction.next,
                                                       expands: false,
                                                       scrollPadding: EdgeInsets.all(8),
@@ -960,6 +843,9 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                     ),
                                                   )
                                                 : Text(adData[i][2]),
+                                          ),
+                                          DataCell(
+                                            Text(adData[i][3]),
                                           ),
                                           DataCell(
                                             Switch(
@@ -975,65 +861,16 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                               inactiveThumbColor: AppColors.accentBlue,
                                             ),
                                           ),
-                                          if (isEditingAds)
-                                            DataCell(
-                                              IconButton(
-                                                icon: const Icon(Icons.delete, color: Colors.red),
-                                                tooltip: 'Delete Row',
-                                                onPressed: () async {
-                                                  final confirm = await showDeleteConfirmationDialog(context);
-                                                  if (confirm) {
-                                                    setState(() {
-                                                      adData.removeAt(i);
-                                                      adToggles.removeAt(i);
-                                                      adControllers.removeAt(i);
-                                                    });
-                                                  }
-                                                },
-                                              ),
-                                            ),
                                         ]),
                                       );
-                                      if (isAddingAd) {
-                                        adRows.add(
-                                          DataRow(cells: [
-                                            DataCell(SizedBox(width: 32, child: Text('${adData.length + 1}'))),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 160,
-                                                child: TextField(
-                                                  controller: newAdControllers[0],
-                                                  maxLength: 18,
-                                                  maxLines: 1,
-                                                  inputFormatters: [
-                                                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
-                                                    LengthLimitingTextInputFormatter(18),
-                                                  ],
-                                                  decoration: const InputDecoration(
-                                                    border: OutlineInputBorder(),
-                                                    counterText: '',
-                                                  ),
-                                                  scrollPhysics: AlwaysScrollableScrollPhysics(),
-                                                  keyboardType: TextInputType.text,
-                                                  textInputAction: TextInputAction.next,
-                                                  expands: false,
-                                                  scrollPadding: EdgeInsets.all(8),
-                                                  style: TextStyle(overflow: TextOverflow.ellipsis),
-                                                ),
-                                              ),
-                                            ),
-                                          ]),
-                                        );
-                                      }
                                       return DataTable(
                                         columns: [
                                           DataColumn(label: SizedBox(width: 32, child: Text('S/N'))),
                                           DataColumn(label: Text('Ad Name')),
-                                          DataColumn(label: Text('Frequency')),
-                                          DataColumn(label: Text('Link')),
+                                          DataColumn(label: Text('Ad Placement')),
+                                          DataColumn(label: Text('Ad ID')),
+                                          DataColumn(label: Text('Ad Type')),
                                           DataColumn(label: Text('Enable')),
-                                          if (isEditingAds)
-                                            DataColumn(label: SizedBox(width: 36)),
                                         ],
                                         rows: adRows,
                                         columnSpacing: 10,
