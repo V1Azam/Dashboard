@@ -3,6 +3,7 @@ import 'package:dashboard/Theme/app_colors.dart';
 import 'package:pocketbase/pocketbase.dart';
 import 'dart:async';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 final pb = PocketBase('http://127.0.0.1:8090');
 
@@ -581,11 +582,31 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                       style: TextStyle(overflow: TextOverflow.ellipsis),
                                                     ),
                                                   )
-                                                : Text(
-                                                    featureData[i][2].length > 30
-                                                        ? featureData[i][2].substring(0, 30) + '...'
-                                                        : featureData[i][2],
-                                                    overflow: TextOverflow.ellipsis,
+                                                : GestureDetector(
+                                                    onTap: () async {
+                                                      final url = featureData[i][2];
+                                                      if (url.isNotEmpty && isValidUrl(url)) {
+                                                        final uri = Uri.parse(url);
+                                                        if (await canLaunchUrl(uri)) {
+                                                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                                        } else {
+                                                          ScaffoldMessenger.of(context).showSnackBar(
+                                                            SnackBar(content: Text('Could not open the link.'), backgroundColor: Colors.red),
+                                                          );
+                                                        }
+                                                      }
+                                                    },
+                                                    child: Text(
+                                                      featureData[i][2].length > 30
+                                                          ? featureData[i][2].substring(0, 30) + '...'
+                                                          : featureData[i][2],
+                                                      overflow: TextOverflow.ellipsis,
+                                                      style: const TextStyle(
+                                                        color: Colors.blue,
+                                                        decoration: TextDecoration.underline,
+                                                        fontWeight: FontWeight.w500,
+                                                      ),
+                                                    ),
                                                   ),
                                           ),
                                           DataCell(
