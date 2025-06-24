@@ -58,37 +58,49 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   List<Map<String, dynamic>> extraFeatures = [];
   List<Map<String, dynamic>> stayConnectedFeatures = [];
+  Map<String, dynamic>? bannerAd;
   bool isLoading = true;
   String? errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _loadFeatures();
+    _loadFeaturesAndAds();
   }
 
-  Future<void> _loadFeatures() async {
+  Future<void> _loadFeaturesAndAds() async {
     setState(() {
       isLoading = true;
       errorMessage = null;
     });
 
     try {
-      final records = await pb.collection('features').getFullList(
+      final featuresRecords = await pb.collection('features').getFullList(
         headers: {
           'Cache-Control': 'no-cache',
         },
       );
-      final enabled = records.where((r) => r.data['isEnabled'] == true).toList();
+      final enabled = featuresRecords.where((r) => r.data['isEnabled'] == true).toList();
       final extra = enabled.where((r) => r.data['section'] == 'extraFeatures').map((r) => r.data).toList();
       final stay = enabled.where((r) => r.data['section'] == 'stayConnected').map((r) => r.data).toList();
+
+      // Fetch ads
+      final adsRecords = await pb.collection('ads').getFullList(
+        headers: {
+          'Cache-Control': 'no-cache',
+        },
+      );
+      final bannerList = adsRecords.where(
+        (r) => r.data['adPlacement'] == 'Banner' && r.data['isEnabled'] == true,
+      ).toList();
       setState(() {
         extraFeatures = extra;
         stayConnectedFeatures = stay;
+        bannerAd = bannerList.isNotEmpty ? bannerList.first.data : null;
         isLoading = false;
-        if (extraFeatures.isEmpty && stayConnectedFeatures.isEmpty && records.isNotEmpty) {
+        if (extraFeatures.isEmpty && stayConnectedFeatures.isEmpty && featuresRecords.isNotEmpty) {
           errorMessage = 'No Features Enabled.';
-        } else if (records.isEmpty) {
+        } else if (featuresRecords.isEmpty) {
           errorMessage = 'Feature List Empty.';
         }
       });
@@ -98,7 +110,7 @@ class _MyHomePageState extends State<MyHomePage> {
         if (e.toString().contains('Connection refused')) {
           errorMessage = 'Connection Error: Could not connect to the PocketBase server. Please ensure the server is running and the URL is correct.';
         } else if (e.statusCode == 404) {
-          errorMessage = 'Collection Not Found: The "features" collection does not exist in PocketBase. Please check the collection name in your admin dashboard.';
+          errorMessage = 'Collection Not Found: The "features" or "ads" collection does not exist in PocketBase. Please check the collection name in your admin dashboard.';
         } else {
           errorMessage = 'A network error occurred: ${e.originalError}';
         }
@@ -127,7 +139,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Container(
         color: AppColors.mainBackground,
         child: RefreshIndicator(
-          onRefresh: _loadFeatures,
+          onRefresh: _loadFeaturesAndAds,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -148,6 +160,30 @@ class _MyHomePageState extends State<MyHomePage> {
                 padding: const EdgeInsets.all(24),
                 sliver: _buildSectionGrid(extraFeatures),
               ),
+              if (bannerAd != null) // Insert ad card if available
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                    child: Container(
+                      width: double.infinity,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        bannerAd!['adName'] ?? 'Ad',
+                        style: const TextStyle(
+                          color: Colors.black87,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ),
               const SliverToBoxAdapter(
                 child: Padding(
                   padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
