@@ -62,8 +62,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
   // Table data for features and ads
   List<List<String>> featureData = [];
   List<List<String>> adData = [
-    ['Promotion Ads', 'Banner', 'AD001', 'Banner'],
-    ['Game Ads', 'Interstitial', 'AD002', 'Video'],
+    ['Promotion Ads', 'Banner', 'ca-app-pub-1234567890123456/1234567890', 'Banner'],
+    ['Game Ads', 'Interstitial', 'ca-app-pub-1234567890123456/0987654321', 'Video'],
   ];
 
   // Last saved data for revert
@@ -256,6 +256,7 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
 
   void _onSaveAds() async {
     final nameRegExp = RegExp(r'^[a-zA-Z0-9 _-]+$');
+    final adIDRegExp = RegExp(r'^ca-app-pub-\d{16}/\d{10}$');
     for (int i = 0; i < adData.length; i++) {
       final name = adControllers[i][0].text.trim();
       final adID = adControllers[i][2].text.trim();
@@ -268,6 +269,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
         error = 'Ad name contains invalid characters (row ${i + 1}).';
       } else if (adID.isEmpty) {
         error = 'Ad ID cannot be empty (row ${i + 1}).';
+      } else if (!adIDRegExp.hasMatch(adID)) {
+        error = 'Ad ID must be in AdMob format: ca-app-pub-1234567890123456/1234567890 (row ${i + 1}).';
       }
       if (error != null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -826,14 +829,8 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                       controller: adControllers[i][2],
                                                       decoration: const InputDecoration(
                                                         border: OutlineInputBorder(),
-                                                        counterText: '',
                                                       ),
-                                                      maxLength: 18,
                                                       maxLines: 1,
-                                                      inputFormatters: [
-                                                        FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9 _\-]')),
-                                                        LengthLimitingTextInputFormatter(18),
-                                                      ],
                                                       scrollPhysics: AlwaysScrollableScrollPhysics(),
                                                       keyboardType: TextInputType.text,
                                                       textInputAction: TextInputAction.next,
