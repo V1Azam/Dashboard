@@ -547,23 +547,46 @@ class _NavigationRailExampleState extends State<NavigationRailExample> {
                                                       style: TextStyle(overflow: TextOverflow.ellipsis),
                                                     ),
                                                   )
-                                                : Container(
-                                                    width: 32,
-                                                    height: 32,
-                                                    decoration: BoxDecoration(
-                                                      color: Colors.white,
-                                                      borderRadius: BorderRadius.circular(6),
-                                                      border: Border.all(color: Colors.grey),
+                                                : GestureDetector(
+                                                    onTap: featureData[i][1].isNotEmpty && isValidUrl(featureData[i][1])
+                                                        ? () async {
+                                                            final url = featureData[i][1];
+                                                            final uri = Uri.parse(url);
+                                                            if (await canLaunchUrl(uri)) {
+                                                              await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                                            } else {
+                                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                                SnackBar(content: Text('Could not open the image URL.'), backgroundColor: Colors.red),
+                                                              );
+                                                            }
+                                                          }
+                                                        : null,
+                                                    child: Container(
+                                                      width: 48,
+                                                      height: 48,
+                                                      decoration: BoxDecoration(
+                                                        color: Colors.white,
+                                                        borderRadius: BorderRadius.circular(8),
+                                                        border: Border.all(color: Colors.grey),
+                                                      ),
+                                                      alignment: Alignment.center,
+                                                      child: featureData[i][1].isNotEmpty && isValidUrl(featureData[i][1])
+                                                          ? ClipRRect(
+                                                              borderRadius: BorderRadius.circular(6),
+                                                              child: Image.network(
+                                                                featureData[i][1],
+                                                                fit: BoxFit.cover,
+                                                                width: 44,
+                                                                height: 44,
+                                                                loadingBuilder: (context, child, loadingProgress) {
+                                                                  if (loadingProgress == null) return child;
+                                                                  return const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)));
+                                                                },
+                                                                errorBuilder: (context, error, stackTrace) => const Icon(Icons.broken_image, color: Colors.grey, size: 32),
+                                                              ),
+                                                            )
+                                                          : const Icon(Icons.broken_image, color: Colors.grey, size: 32),
                                                     ),
-                                                    alignment: Alignment.center,
-                                                    child: featureData[i][1].isNotEmpty
-                                                        ? Image.network(
-                                                            featureData[i][1],
-                                                            fit: BoxFit.contain,
-                                                            errorBuilder: (context, error, stackTrace) =>
-                                                                const Icon(Icons.image, color: Colors.grey, size: 24),
-                                                          )
-                                                        : const Icon(Icons.image, color: Colors.grey, size: 24),
                                                   ),
                                           ),
                                           DataCell(
